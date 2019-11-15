@@ -4,7 +4,7 @@ var formurlencoded = require('form-urlencoded').default;
 var Url = require('url-parse');
 
 
-const urlToSendWebmentionTo = "https://webmention.rocks/test/17"
+const urlToSendWebmentionTo = "https://webmention.rocks/test/21"
 const host = new Url(urlToSendWebmentionTo).origin;
 
 async function getWebmentionEndpoint(host, urlToSendWebmentionTo){
@@ -43,9 +43,8 @@ async function getWebmentionEndpoint(host, urlToSendWebmentionTo){
 	    			if(linkElementURL == "" || aLinkElementURL == ""){
 	    				return urlToSendWebmentionTo
 	    			}
-	    			console.log(aElement.index == -1)
 	    			// the second should only be the case if no aLinkElementURL exists
-	    			if(linkElement.index() < aElement.index() && linkElementURL || linkElement.index() != -1 && aElement.index == -1 && linkElementURL){
+	    			if(linkElement.index() < aElement.index() && linkElementURL){ //|| linkElement.index() != -1 && aElement.index == -1 && linkElementURL){
 	    				// link is before a 
 	    				return relativizeURL(linkElementURL, host, finalURL)
 
@@ -55,7 +54,7 @@ async function getWebmentionEndpoint(host, urlToSendWebmentionTo){
 	    			// if the a element is before the link element OR
 	    			// if both indexes don't exist and the other element doesn't exist then run it
 
-	    			if(aElement.index() < linkElement.index() && aLinkElementURL || aElement.index() != -1 && linkElement.index == -1 && aLinkElementURL){
+	    			if(aElement.index() < linkElement.index() && aLinkElementURL){ // || aElement.index() != -1 && linkElement.index == -1 && aLinkElementURL){
 	    				return relativizeURL(aLinkElementURL, host, finalURL)
 
 	    			}
