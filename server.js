@@ -20,7 +20,6 @@ client.on("error", function (err) {
     console.log("Error " + err);
 });
 
-var uuid = require('node-uuid');
 var Queue = require('bull');
 // REDIS URL
 var jobsQueue = new Queue('verfiying', 'redis://127.0.0.1:6379');
