@@ -11,29 +11,8 @@
 - write database saver
 */
 
-
-
-// REDIS URL
-var redis = require("redis"),
-    client = redis.createClient();
-client.on("error", function (err) {
-    console.log("Error " + err);
-});
-
-var Queue = require('bull');
-// REDIS URL
-var jobsQueue = new Queue('verfiying', 'redis://127.0.0.1:6379');
-
 const fetch = require('node-fetch');
-const { http, https } = require('follow-redirects');
-const followRedirects = require('follow-redirects')
-followRedirects.maxRedirects = 10;
 var formurlencoded = require('form-urlencoded').default;
-var validResourceHost = "localhost:3000"
-const sourceURLProtocolError = "Incorrect protocol for source url"
-const targetURLProtocolError = "Incorrect protocol for target url"
-const sourceURLTookTooLongToLoad = "Too long to load source"
-const alreadyBeingProcessedError = "AlreadyBeingProcessed"
 function sendWebMention(source, target, webmentionEndpoint, callback){
 	fetch(webmentionEndpoint, {
 	  body: formurlencoded({source: source, target: target}),
@@ -54,6 +33,34 @@ function sendWebMention(source, target, webmentionEndpoint, callback){
 		}
 	)
 }
+
+
+
+
+let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+
+// REDIS URL
+var redis = require("redis"),
+    client = redis.createClient();
+client.on("error", function (err) {
+    console.log("Error " + err);
+});
+
+var Queue = require('bull');
+// REDIS URL
+var jobsQueue = new Queue('verfiying', 'redis://127.0.0.1:6379');
+
+
+const { http, https } = require('follow-redirects');
+const followRedirects = require('follow-redirects')
+followRedirects.maxRedirects = 10;
+
+var validResourceHost = "localhost:3000"
+const sourceURLProtocolError = "Incorrect protocol for source url"
+const targetURLProtocolError = "Incorrect protocol for target url"
+const sourceURLTookTooLongToLoad = "Too long to load source"
+const alreadyBeingProcessedError = "AlreadyBeingProcessed"
+
 
 
 
