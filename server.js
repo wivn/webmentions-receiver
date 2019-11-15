@@ -28,7 +28,6 @@ const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
 const KEY_EXP = 60
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-// REDIS URL
 var client = redis.createClient({url: REDIS_URL});
 client.on("error", function (err) {
     console.log("Error " + err);
@@ -151,8 +150,7 @@ function saveToDatabase(){
 	console.log("saving to local database...")
 }
 
-// REDIS URL
-var jobsQueue = new Queue('verfiying', 'redis://127.0.0.1:6379');
+var jobsQueue = new Queue('verfiying', REDIS_URL);
 jobsQueue.process(function(job, done){
 
 	// job.data contains the custom data passed when the job was created
