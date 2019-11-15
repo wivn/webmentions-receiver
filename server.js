@@ -1,5 +1,6 @@
 /* Improvements:
--  make redis url rely on process or localhost
+-  make redis url rely on process or localhost (DONE)
+- make any mentions to localhost rely on constants
 - rewrite errors as classes 
 - remove all req, res parts out of the Express API so it can be used with any server
 - write README.md to how to use it
@@ -18,10 +19,9 @@ followRedirects.maxRedirects = 10;
 var Queue = require('bull');
 var redis = require("redis");
 
-
-
 // CONSTANTS
 var validResourceHost = "localhost:3000"
+const statusURLBase = "http://localhost:3000/status"
 const sourceURLProtocolError = "Incorrect protocol for source url"
 const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
@@ -55,7 +55,7 @@ function checkURLValidity(source, target){
 async function recieveWebmention(req, res){
 	const isAsync = true
 	const showStatus = true
-	const statusURLBase = "http://localhost:3000/status"
+	
 	const source = req.body.source
 	const target = req.body.target
 	const urlValidityCheck = checkURLValidity(source, target)
