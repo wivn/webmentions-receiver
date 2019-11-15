@@ -3,6 +3,12 @@
 - rewrite errors as classes 
 - remove all req, res parts out of the Express API so it can be used with any server
 - write README.md to how to use it
+- make things like key expiry modifiable, and any mentions of localhost
+- valid resource host should be an array
+- make database saver modifiable
+
+
+- write database saver
 */
 
 
