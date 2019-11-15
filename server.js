@@ -47,8 +47,7 @@ client.on("error", function (err) {
 });
 
 var Queue = require('bull');
-// REDIS URL
-var jobsQueue = new Queue('verfiying', 'redis://127.0.0.1:6379');
+
 
 
 const { http, https } = require('follow-redirects');
@@ -179,6 +178,9 @@ function status(source, target){
 function saveToDatabase(){
 	console.log("saving to local database...")
 }
+
+// REDIS URL
+var jobsQueue = new Queue('verfiying', 'redis://127.0.0.1:6379');
 jobsQueue.process(function(job, done){
 
 	// job.data contains the custom data passed when the job was created
