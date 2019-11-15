@@ -55,11 +55,14 @@ const { http, https } = require('follow-redirects');
 const followRedirects = require('follow-redirects')
 followRedirects.maxRedirects = 10;
 
+// CONSTANTS
 var validResourceHost = "localhost:3000"
 const sourceURLProtocolError = "Incorrect protocol for source url"
 const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
+const KEY_EXP = 60
+
 // checks that URL is either http or https and that it's including the host url
 function checkURLValidity(source, target){
 	try {
@@ -242,7 +245,7 @@ jobsQueue.process(function(job, done){
 	
   
   });
-const KEY_EXP = 60
+
 async function verifyWebmentionAsync(source, target){
 	return new Promise(function (resolve, reject){
 		const key = source + ";" + target;
