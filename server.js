@@ -1,3 +1,12 @@
+/* Improvements:
+-  make redis url rely on process or localhost
+- rewrite errors as classes 
+- remove all req, res parts out of the Express API so it can be used with any server
+- write README.md to how to use it
+*/
+
+
+
 // REDIS URL
 var redis = require("redis"),
     client = redis.createClient();
@@ -67,22 +76,11 @@ app.get('/', (req, res) => {
 	res.send("called")
 	
 })
-/* TODO:
-- add async version of verification (DONE)
-	- add status page (	 maybeeeeeeeeeeeeeeee later return a page where they can look back for updates)
-)
-	- if the same URL and source are sent multiple times, only check once then wait at least 1 minute before processing again (I can also add a rate limit to the service) (DONE)
- check if the url with that target exists, if it does return that they will have to wait a minute before sending again (DONE)
 
-	 if it doesn't exist, add it to the job queue to be dealt with and (DONE)
-
-	 in the job queue it'll run the verifyWebmentionSync code and if it works out, then run the save to database callback provided by the user (DONE)
-- add time limit to checking to make sure it doesn't make me wait forever (DONE)
-- also add 1 mb limit, once it trys to download more of that I know it's abuse (DONE)
-- convert to function with callback so can be used to save stuff to database (DONE)
-*/
 async function recieveWebmention(req, res){
 	const isAsync = true
+	const showStatus = true
+	const statusURLBase = "http://localhost:3000/status"
 	const source = req.body.source
 	const target = req.body.target
 	const urlValidityCheck = checkURLValidity(source, target)
@@ -93,9 +91,19 @@ async function recieveWebmention(req, res){
 				const isMentionedCheck = await verifyWebmentionAsync(source, target)
 				
 				if(isMentionedCheck.isProcessing && isMentionedCheck.err.message == ""){
-					// response 202 because there is no status page and realistically it shouldn't take too long to run
-					res.status(202)
-					res.send("Your request will now be processed. Your Webmention should appear shortly.")
+					
+					if(showStatus){
+						res.status(201)
+						const statusURL = `${statusURLBase}?source=${source}&target=${target}`
+						res.set('Location', statusURL);
+						res.send("You can check the progress at " + statusURL)
+
+					} else {
+						// response 202 because there is no status page and realistically it shouldn't take too long to run
+						res.status(202)
+						res.send("Your request will now be processed. Your Webmention should appear shortly.")
+					}
+					
 					//res.send("Check on progress at: " + id)
 				} else {
 					res.status(400)
@@ -143,6 +151,38 @@ async function recieveWebmention(req, res){
 		
 	}
 }
+function status(source, target){
+	return new Promise(function (resolve, reject){
+		const key = source + ";" + target;
+		try	{
+			client.get(key, function(err, data) {
+				// data is null if the key doesn't exist
+				if(err || data === null) {
+					// if they key doesn't exist it means it hasn't been processed yet or it's already been processed
+					resolve("Your Webmention has been processed or it hasn't been sent yet.")
+				} else {
+					// if the key does exist it means it's being processed
+					resolve("In processing...")
+				}
+			});
+		} catch(e){
+			reject(e)
+		}
+	})
+	
+}
+app.get('/status', function (req, res){
+	// http://localhost:3000/status?source=localhost:3000/file&target=localhost:3000/target
+	const source = req.query.source
+	const target = req.query.target
+	status(source, target).then((msg) => {
+		res.send(msg)
+	}).catch((e) => {
+		res.status(400)
+		res.send("An error occured. Please try again later.")
+	})
+	
+})
 app.post('/webmention', async (req, res) => {
 	recieveWebmention(req, res).catch((e) => console.log(e))
 	
@@ -172,7 +212,7 @@ jobsQueue.process(function(job, done){
 	
   
   });
-const KEY_EXP = 10
+const KEY_EXP = 60
 async function verifyWebmentionAsync(source, target){
 	return new Promise(function (resolve, reject){
 		const key = source + ";" + target;
