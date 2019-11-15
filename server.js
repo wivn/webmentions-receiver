@@ -11,31 +11,6 @@
 - write database saver
 */
 
-const fetch = require('node-fetch');
-var formurlencoded = require('form-urlencoded').default;
-function sendWebMention(source, target, webmentionEndpoint, callback){
-	fetch(webmentionEndpoint, {
-	  body: formurlencoded({source: source, target: target}),
-	  headers: {
-	    "Content-Type": "application/x-www-form-urlencoded"
-	  },
-	  method: "POST"
-	})
-	.then(res => {
-		// make the response an object, if it worked set success, if not don't
-		callback(res, undefined)
-	}
-	)
-	.catch(err => {
-					console.log("err")
-
-			callback(undefined, err)
-		}
-	)
-}
-
-
-
 // MAIN PROGRAM
 let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
@@ -263,6 +238,29 @@ async function verifyWebmentionSync(source, target){
 }
 
 
+// EXPRESS SPECIFIC CODE
+const fetch = require('node-fetch');
+var formurlencoded = require('form-urlencoded').default;
+function sendWebMention(source, target, webmentionEndpoint, callback){
+	fetch(webmentionEndpoint, {
+	  body: formurlencoded({source: source, target: target}),
+	  headers: {
+	    "Content-Type": "application/x-www-form-urlencoded"
+	  },
+	  method: "POST"
+	})
+	.then(res => {
+		// make the response an object, if it worked set success, if not don't
+		callback(res, undefined)
+	}
+	)
+	.catch(err => {
+					console.log("err")
+
+			callback(undefined, err)
+		}
+	)
+}
 
 
 const express = require('express')
