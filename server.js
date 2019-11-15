@@ -82,34 +82,6 @@ function checkURLValidity(source, target){
 	}
 }
 
-
-
-
-
-
-const express = require('express')
-var bodyParser = require('body-parser')
-const app = express()
-const port = 3000
-// parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }))
- 
-// parse application/json
-app.use(bodyParser.json())
-
-app.get('/file', (req,res) => {
-	app.set('Content-Type', 'text/html; charset=utf-8')
-	setTimeout(function () {
-        res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
-    }, 0);
-	
-})
-app.get('/', (req, res) => {
-	
-	res.send("called")
-	
-})
-
 async function recieveWebmention(req, res){
 	const isAsync = true
 	const showStatus = true
@@ -204,6 +176,34 @@ function status(source, target){
 	})
 	
 }
+
+
+
+
+const express = require('express')
+var bodyParser = require('body-parser')
+const app = express()
+const port = 3000
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }))
+ 
+// parse application/json
+app.use(bodyParser.json())
+
+app.get('/file', (req,res) => {
+	app.set('Content-Type', 'text/html; charset=utf-8')
+	setTimeout(function () {
+        res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
+    }, 0);
+	
+})
+app.get('/', (req, res) => {
+	
+	res.send("called")
+	
+})
+
+
 app.get('/status', function (req, res){
 	// http://localhost:3000/status?source=localhost:3000/file&target=localhost:3000/target
 	const source = req.query.source
