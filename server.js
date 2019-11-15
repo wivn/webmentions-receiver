@@ -12,22 +12,13 @@
 */
 
 // MAIN PROGRAM
-let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-
-// REDIS URL
-var redis = require("redis"),
-    client = redis.createClient();
-client.on("error", function (err) {
-    console.log("Error " + err);
-});
-
-var Queue = require('bull');
-
-
-
 const { http, https } = require('follow-redirects');
 const followRedirects = require('follow-redirects')
 followRedirects.maxRedirects = 10;
+var Queue = require('bull');
+var redis = require("redis");
+
+
 
 // CONSTANTS
 var validResourceHost = "localhost:3000"
@@ -36,6 +27,12 @@ const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
 const KEY_EXP = 60
+const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+// REDIS URL
+var client = redis.createClient();
+client.on("error", function (err) {
+    console.log("Error " + err);
+});
 
 // checks that URL is either http or https and that it's including the host url
 function checkURLValidity(source, target){
