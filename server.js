@@ -36,7 +36,7 @@ function sendWebMention(source, target, webmentionEndpoint, callback){
 
 
 
-
+// MAIN PROGRAM
 let REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
 // REDIS URL
@@ -60,6 +60,24 @@ const sourceURLProtocolError = "Incorrect protocol for source url"
 const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
+// checks that URL is either http or https and that it's including the host url
+function checkURLValidity(source, target){
+	try {
+		const sourceURL = new URL(source)
+		const targetURL = new URL(target)
+		
+		if(sourceURL.protocol != "http:" && sourceURL.protocol != "https:"){	
+			throw Error(sourceURLProtocolError)
+		}
+		if(targetURL.protocol != "http:" && targetURL.protocol != "https:"){
+			throw Error(targetURLProtocolError)
+		}
+		// only other check is valid resource
+		return {isValid: targetURL.host == validResourceHost, err: {message: ""} }
+	} catch(err){
+		return {isValid: false, err: err}
+	}
+}
 
 
 
@@ -282,26 +300,6 @@ async function verifyWebmentionSync(source, target){
 	})
 	
 }
-
-// checks that URL is either http or https and that it's including the host url
-function checkURLValidity(source, target){
-	try {
-		const sourceURL = new URL(source)
-		const targetURL = new URL(target)
-		
-		if(sourceURL.protocol != "http:" && sourceURL.protocol != "https:"){	
-			throw Error(sourceURLProtocolError)
-		}
-		if(targetURL.protocol != "http:" && targetURL.protocol != "https:"){
-			throw Error(targetURLProtocolError)
-		}
-		// only other check is valid resource
-		return {isValid: targetURL.host == validResourceHost, err: {message: ""} }
-	} catch(err){
-		return {isValid: false, err: err}
-	}
-}
-
 
 app.listen(port, () =>{ 
 	sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
