@@ -176,50 +176,6 @@ function status(source, target){
 	})
 	
 }
-
-
-
-
-const express = require('express')
-var bodyParser = require('body-parser')
-const app = express()
-const port = 3000
-// parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }))
- 
-// parse application/json
-app.use(bodyParser.json())
-
-app.get('/file', (req,res) => {
-	app.set('Content-Type', 'text/html; charset=utf-8')
-	setTimeout(function () {
-        res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
-    }, 0);
-	
-})
-app.get('/', (req, res) => {
-	
-	res.send("called")
-	
-})
-
-
-app.get('/status', function (req, res){
-	// http://localhost:3000/status?source=localhost:3000/file&target=localhost:3000/target
-	const source = req.query.source
-	const target = req.query.target
-	status(source, target).then((msg) => {
-		res.send(msg)
-	}).catch((e) => {
-		res.status(400)
-		res.send("An error occured. Please try again later.")
-	})
-	
-})
-app.post('/webmention', async (req, res) => {
-	recieveWebmention(req, res).catch((e) => console.log(e))
-	
-})
 function saveToDatabase(){
 	console.log("saving to local database...")
 }
@@ -303,6 +259,50 @@ async function verifyWebmentionSync(source, target){
 	})
 	
 }
+
+
+
+
+const express = require('express')
+var bodyParser = require('body-parser')
+const app = express()
+const port = 3000
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }))
+ 
+// parse application/json
+app.use(bodyParser.json())
+
+app.get('/file', (req,res) => {
+	app.set('Content-Type', 'text/html; charset=utf-8')
+	setTimeout(function () {
+        res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
+    }, 0);
+	
+})
+app.get('/', (req, res) => {
+	
+	res.send("called")
+	
+})
+
+
+app.get('/status', function (req, res){
+	// http://localhost:3000/status?source=localhost:3000/file&target=localhost:3000/target
+	const source = req.query.source
+	const target = req.query.target
+	status(source, target).then((msg) => {
+		res.send(msg)
+	}).catch((e) => {
+		res.status(400)
+		res.send("An error occured. Please try again later.")
+	})
+	
+})
+app.post('/webmention', async (req, res) => {
+	recieveWebmention(req, res).catch((e) => console.log(e))
+	
+})
 
 app.listen(port, () =>{ 
 	sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
