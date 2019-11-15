@@ -29,7 +29,7 @@ const alreadyBeingProcessedError = "AlreadyBeingProcessed"
 const KEY_EXP = 60
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 // REDIS URL
-var client = redis.createClient();
+var client = redis.createClient({url: REDIS_URL});
 client.on("error", function (err) {
     console.log("Error " + err);
 });
