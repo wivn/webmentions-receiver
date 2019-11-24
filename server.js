@@ -318,7 +318,7 @@ app.post('/webmention', async (req, res) => {
 })
 
 app.listen(port, () =>{ 
-	sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
+	/*sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
 		res.text().then((body) => console.log(body))
-	})
+	})*/
 })
