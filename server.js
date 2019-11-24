@@ -1,6 +1,6 @@
 /* Improvements:
 -  make redis url rely on process or localhost (DONE)
-- make any mentions to localhost rely on constants
+- make any mentions to localhost rely on constants (DONE)
 - rewrite errors as classes 
 - remove all req, res parts out of the Express API so it can be used with any server
 - write README.md to how to use it
@@ -14,6 +14,7 @@
 
 // MAIN PROGRAM
 const { http, https } = require('follow-redirects');
+const uuidv4 = require('uuid/v4');
 const followRedirects = require('follow-redirects')
 followRedirects.maxRedirects = 10;
 var Queue = require('bull');
@@ -26,7 +27,7 @@ const sourceURLProtocolError = "Incorrect protocol for source url"
 const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
-const KEY_EXP = 60
+const KEY_EXP = 5
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 var client = redis.createClient({url: REDIS_URL});
 client.on("error", function (err) {
@@ -95,7 +96,7 @@ async function recieveWebmention(req, res){
 				const isMentioned = await verifyWebmentionSync(source, target)
 				if(isMentioned){
 					res.status(200)
-					saveToDatabase()
+					saveToDatabase(source, target)
 					res.send("SUCCESSFULLY RECIEVED WEBMENTION")
 				} else {
 					res.status(400)
@@ -146,8 +147,24 @@ function status(source, target){
 	})
 	
 }
-function saveToDatabase(){
+
+function saveToDatabase(source, target){
 	console.log("saving to local database...")
+	console.log(source, target)
+	const token = process.env.TOKEN
+	fetch(`https://api.github.com/repos/nickwil/blog/contents/webmentions/${String(uuidv4())}.txt`, {
+		method: "PUT",
+		headers: {
+			
+			Authorization: "Basic " + Buffer.from("nickwil:" + token).toString('base64'),
+			
+		},
+		body: JSON.stringify({
+			message: "Adding webmention",
+			content: Buffer.from(source+";" + target).toString('base64')
+		})
+	}).then(res => res.text())
+	.then(body => console.log(JSON.parse(body)))
 }
 
 var jobsQueue = new Queue('verfiying', REDIS_URL);
@@ -162,7 +179,7 @@ jobsQueue.process(function(job, done){
 	// if it's mentioned the job will be complete, and it will call the callback
 	verifyWebmentionSync(source, target).then((value) =>{
 		if(value){
-			saveToDatabase()
+			saveToDatabase(source, target)
 		}
 		done();
 	}).catch((e) => {
@@ -214,8 +231,9 @@ async function verifyWebmentionSync(source, target){
 				
 				try{
 					//checking for an exact match, not using per-media-type rules to determine whether target is in the source document
-				
+					console.log(body)
 					resolve(body.includes(target))
+					
 				} catch(e){
 					reject(e)
 				}
