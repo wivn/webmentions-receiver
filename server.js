@@ -27,7 +27,7 @@ const sourceURLProtocolError = "Incorrect protocol for source url"
 const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
-const KEY_EXP = 5
+const KEY_EXP = Number(process.env.KEYEXP) || 5
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 var client = redis.createClient({url: REDIS_URL});
 client.on("error", function (err) {
