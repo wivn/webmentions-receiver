@@ -21,8 +21,8 @@ var Queue = require('bull');
 var redis = require("redis");
 
 // CONSTANTS
-var validResourceHost = "localhost:3000"
-const statusURLBase = "http://localhost:3000/status"
+var validResourceHost = process.env.SITE || "localhost:3000"
+const statusURLBase = process.env.SITESTATUSBASE || "http://localhost:3000/status"
 const sourceURLProtocolError = "Incorrect protocol for source url"
 const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
