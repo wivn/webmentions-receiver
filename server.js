@@ -152,7 +152,8 @@ function saveToDatabase(source, target){
 	console.log("saving to local database...")
 	console.log(source, target)
 	const token = process.env.TOKEN
-	fetch(`https://api.github.com/repos/nickwil/blog/contents/webmentions/${String(uuidv4())}.txt`, {
+	if(token){	
+		fetch(`https://api.github.com/repos/nickwil/blog/contents/webmentions/${String(uuidv4())}.txt`, {
 		method: "PUT",
 		headers: {
 			
@@ -165,6 +166,7 @@ function saveToDatabase(source, target){
 		})
 	}).then(res => res.text())
 	.then(body => console.log(JSON.parse(body)))
+	}
 }
 
 var jobsQueue = new Queue('verfiying', REDIS_URL);
@@ -220,8 +222,13 @@ async function verifyWebmentionAsync(source, target){
 async function verifyWebmentionSync(source, target){
 	// verify that the target url is mentioned in the source
 	return new Promise(function (resolve, reject){
-		
-		const request = http.get(source, (res) => {
+		var beginRequest;
+		if(new URL(source).protocol == 'http'){
+			beginRequest = http;
+		} else{
+			beginRequest = https;
+		}
+		const request = beginRequest.get(source, (res) => {
 			// if the content is greater than 1 MB don't download it
 			if(res.headers['content-length'] > 1000000 ){
 				resolve(false)
@@ -318,7 +325,11 @@ app.post('/webmention', async (req, res) => {
 })
 
 app.listen(port, () =>{ 
-	/*sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
+	// token will only exist in production
+	if(process.env.LOCAL){
+		sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
 		res.text().then((body) => console.log(body))
-	})*/
+	})
+	}
+	
 })
