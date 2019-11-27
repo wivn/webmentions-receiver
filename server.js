@@ -4,7 +4,7 @@
 - rewrite errors as classes 
 - remove all req, res parts out of the Express API so it can be used with any server
 - write README.md to how to use it
-- make things like key expiry modifiable, and any mentions of localhost
+- make things like key expiry modifiable, and any mentions of localhost (DONE)
 - valid resource host should be an array
 - make database saver modifiable
 
@@ -13,6 +13,14 @@
 */
 
 // MAIN PROGRAM
+const mongoose = require('mongoose');
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:3031/meteor', {useNewUrlParser: true, useUnifiedTopology:true 
+});
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function() {
+  // we're connected!
+});
 const { http, https } = require('follow-redirects');
 const uuidv4 = require('uuid/v4');
 const followRedirects = require('follow-redirects')
@@ -147,11 +155,16 @@ function status(source, target){
 	})
 	
 }
-
+const webmentionSchema = new mongoose.Schema({ source: String, target: String, updated: { type: Date, default: Date.now }});
+var WebmentionModel = mongoose.model('webmention', webmentionSchema);
 function saveToDatabase(source, target){
 	console.log("saving to local database...")
 	console.log(source, target)
-	const token = process.env.TOKEN
+	var savedWebmention = new WebmentionModel({source: source, target: target, date: new Date()})
+	savedWebmention.save(function (err, object) {
+		if (err) return console.error(err);
+	});
+	/*const token = process.env.TOKEN
 	if(token){	
 		fetch(`https://api.github.com/repos/nickwil/blog/contents/webmentions/${String(uuidv4())}.txt`, {
 		method: "PUT",
@@ -166,9 +179,20 @@ function saveToDatabase(source, target){
 		})
 	}).then(res => res.text())
 	.then(body => console.log(JSON.parse(body)))
-	}
+	}*/
 }
-
+function getWebmentions(callback){
+	WebmentionModel.find(function (err, webmentions) {
+		if (err) return console.error(err);
+		callback(webmentions);
+	})
+	/*
+	// gets latest with that source and target
+	WebmentionModel.findOne({ source: "http://localhost:3000/file", target: "http://localhost:3000/target" }).sort({created_at: -1}).exec(function(err, webmention) { 
+		if (err) return console.error(err);
+	  	console.log(webmention)
+	 });*/
+}
 var jobsQueue = new Queue('verfiying', REDIS_URL);
 jobsQueue.process(function(job, done){
 
@@ -223,7 +247,7 @@ async function verifyWebmentionSync(source, target){
 	// verify that the target url is mentioned in the source
 	return new Promise(function (resolve, reject){
 		var beginRequest;
-		if(new URL(source).protocol == 'http'){
+		if(new URL(source).protocol == 'http' || process.env.LOCAL){
 			beginRequest = http;
 		} else{
 			beginRequest = https;
@@ -305,8 +329,10 @@ app.get('/', (req, res) => {
 	res.send("called")
 	
 })
-
-
+// can pretty easily save to Github with the click of a button once approved, just save them all in a file
+app.get('/seeWebmentions', (req, res) => {
+	getWebmentions((data) => res.json(data))
+})
 app.get('/status', function (req, res){
 	// http://localhost:3000/status?source=localhost:3000/file&target=localhost:3000/target
 	const source = req.query.source
