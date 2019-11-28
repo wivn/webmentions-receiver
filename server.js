@@ -7,9 +7,14 @@
 - make things like key expiry modifiable, and any mentions of localhost (DONE)
 - valid resource host should be an array
 - make database saver modifiable
+- write as a class
 
 
-- write database saver
+- write database saver (DONE)
+
+- revamp status page so it knows whether it's been processed or not
+- add nice home screen
+- use custom domain instead of heroku.app
 */
 
 // MAIN PROGRAM
@@ -60,13 +65,11 @@ function checkURLValidity(source, target){
 		return {isValid: false, err: err}
 	}
 }
-
-async function recieveWebmention(req, res){
+// #TODO UPDATE TO NOT USE REQ/RES
+async function recieveWebmention(source, target){
 	const isAsync = true
 	const showStatus = true
 	
-	const source = req.body.source
-	const target = req.body.target
 	const urlValidityCheck = checkURLValidity(source, target)
 	const isValidURL = urlValidityCheck.isValid
 	if(isValidURL && source != target){
@@ -77,25 +80,24 @@ async function recieveWebmention(req, res){
 				if(isMentionedCheck.isProcessing && isMentionedCheck.err.message == ""){
 					
 					if(showStatus){
-						res.status(201)
 						const statusURL = `${statusURLBase}?source=${source}&target=${target}`
-						res.set('Location', statusURL);
-						res.send("You can check the progress at " + statusURL)
+						return {message: "You can check the progress at " + statusURL, locationHeader: statusURL, status: 201}
 
 					} else {
 						// response 202 because there is no status page and realistically it shouldn't take too long to run
-						res.status(202)
-						res.send("Your request will now be processed. Your Webmention should appear shortly.")
+						return {message: "Your request will now be processed. Your Webmention should appear shortly.",
+						 locationHeader: null, status: 202}
 					}
 					
-					//res.send("Check on progress at: " + id)
 				} else {
-					res.status(400)
 					const err = isMentionedCheck.err
 					if(err.message == alreadyBeingProcessedError){
-						res.send("Your request is being processed. Please wait at least one minute before trying again.")
+						
+						return {message: "Your request is being processed. Please wait at least one minute before trying again.",
+						 locationHeader: null, status: 400}
 					} else {
-						res.send("Error in processing. Please try again.")
+						return {message: "Error in processing. Please try again.",
+						 locationHeader: null, status: 400}
 					}
 				}
 				
@@ -103,33 +105,36 @@ async function recieveWebmention(req, res){
 			} else {
 				const isMentioned = await verifyWebmentionSync(source, target)
 				if(isMentioned){
-					res.status(200)
 					saveToDatabase(source, target)
-					res.send("SUCCESSFULLY RECIEVED WEBMENTION")
+					return {message: "SUCCESSFULLY RECIEVED WEBMENTION",
+						 locationHeader: null, status: 200}
 				} else {
-					res.status(400)
-					res.send("Cannot not find the target URL in the source URL provided")
+					return {message: "Cannot not find the target URL in the source URL provided",
+						 locationHeader: null, status: 400}
 				}
 			}
 			
 			
 		} catch(e){
-			res.status(400)
-			res.send("Error with loading source URL")
+			return {message: "Error with loading source URL",
+						 locationHeader: null, status: 400}
 		}
 		
 	} else {
 		
-		res.status(400)
 		const urlValidityErrorMessage = urlValidityCheck.err.message
 		if(urlValidityErrorMessage == sourceURLProtocolError){
-			res.send("Source URLs are required to start with http:// or https://")
+			return {message: "Source URLs are required to start with http:// or https://",
+						 locationHeader: null, status: 400}
 		} else if(urlValidityErrorMessage == targetURLProtocolError){
-			res.send("Target URLs are required to start with http:// or https://")
+			return {message: "Target URLs are required to start with http:// or https://",
+						 locationHeader: null, status: 400}
 		} else if (source == target){
-			res.send("The source URL cannot equal the target URL")
+			return {message: "The source URL cannot equal the target URL",
+						 locationHeader: null, status: 400}
 		} else {
-			res.send("We do not support sending Webmentions to that target URL")
+			return {message: "We do not support sending Webmentions to that target URL",
+						 locationHeader: null, status: 400}
 		} 
 		
 		
@@ -346,7 +351,13 @@ app.get('/status', function (req, res){
 	
 })
 app.post('/webmention', async (req, res) => {
-	recieveWebmention(req, res).catch((e) => console.log(e))
+	recieveWebmention(req.body.source, req.body.target).then((data) => {
+		res.status(data.status)
+		if(data.locationHeader){
+			res.set('Location', data.locationHeader)
+		} 
+		res.send(data.message)
+	}).catch((e) => console.log(e))
 	
 })
 
