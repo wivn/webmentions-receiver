@@ -47,8 +47,7 @@ class ProtocolError extends Error {
 	}
 }
 
-const sourceURLProtocolError = "Incorrect protocol for source url"
-const targetURLProtocolError = "Incorrect protocol for target url"
+
 const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
 const KEY_EXP = Number(process.env.KEYEXP) || 5
