@@ -1,10 +1,12 @@
 /* Improvements:
 -  make redis url rely on process or localhost (DONE)
 - make any mentions to localhost rely on constants (DONE)
-- rewrite errors as classes 
-- remove all req, res parts out of the Express API so it can be used with any server
-- write README.md to how to use it
+- remove all req, res parts out of the Express API so it can be used with any server (DONE)
 - make things like key expiry modifiable, and any mentions of localhost (DONE)
+
+- write README.md to how to use it
+
+- rewrite errors as classes 
 - valid resource host should be an array
 - make database saver modifiable
 - write as a class
@@ -14,7 +16,8 @@
 
 - revamp status page so it knows whether it's been processed or not
 - add nice home screen
-- use custom domain instead of heroku.app
+- add nice page on send with the message
+- use custom domain instead of heroku.app (DONE)
 */
 
 // MAIN PROGRAM
@@ -36,6 +39,14 @@ var redis = require("redis");
 // CONSTANTS
 var validResourceHost = process.env.SITE || "localhost:3000"
 const statusURLBase = process.env.SITESTATUSBASE || "http://localhost:3000/status"
+class ProtocolError extends Error {
+	constructor(message, isTarget) {
+	  super(message);
+	  this.name = "ProtocolError";
+	  this.isTarget = isTarget
+	}
+}
+
 const sourceURLProtocolError = "Incorrect protocol for source url"
 const targetURLProtocolError = "Incorrect protocol for target url"
 const sourceURLTookTooLongToLoad = "Too long to load source"
@@ -54,10 +65,10 @@ function checkURLValidity(source, target){
 		const targetURL = new URL(target)
 		
 		if(sourceURL.protocol != "http:" && sourceURL.protocol != "https:"){	
-			throw Error(sourceURLProtocolError)
+			throw new ProtocolError("Incorrect protocol for source url", false)
 		}
 		if(targetURL.protocol != "http:" && targetURL.protocol != "https:"){
-			throw Error(targetURLProtocolError)
+			throw new ProtocolError("Incorrect protocol for target url", true)
 		}
 		// only other check is valid resource
 		return {isValid: targetURL.host == validResourceHost, err: {message: ""} }
@@ -122,11 +133,11 @@ async function recieveWebmention(source, target){
 		
 	} else {
 		
-		const urlValidityErrorMessage = urlValidityCheck.err.message
-		if(urlValidityErrorMessage == sourceURLProtocolError){
+		const urlValidityError = urlValidityCheck.err
+		if(urlValidityError instanceof ProtocolError && !urlValidityError.isTarget){
 			return {message: "Source URLs are required to start with http:// or https://",
 						 locationHeader: null, status: 400}
-		} else if(urlValidityErrorMessage == targetURLProtocolError){
+		} else if(urlValidityError instanceof ProtocolError && urlValidityError.isTarget){
 			return {message: "Target URLs are required to start with http:// or https://",
 						 locationHeader: null, status: 400}
 		} else if (source == target){
