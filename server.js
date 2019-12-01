@@ -4,19 +4,16 @@
 - revamp status page so it knows whether it's been processed or not
 - add nice home screen
 - add nice page on send with the message
-
+- add random delay (longer during testing)
 
 TODO:
-
-// add random delay (longer during testing)
+- if request for source returns 400 then delete the webmention (add a deleted property)
 status page response:
-	if webmention exists return last time it was updated and check in Redis whether it's being processed there [there was a requesrt
-		for an update in the last 60 seconds, if your update is not appearing please wait]
-	if webmention doesn't exist then check to see if it's being processed in redis, if it is then say it's being processed if not it never 
-	was sent and tell the user that
+	if webmention exists return last time it was updated and say if its being processed or not (DONE)
+	if webmention doesn't exist then it wasn't sent properly and there's been an error (DONE)
 
 	OPTIONAL: use redis just for the job queue and remove the key making thing and just add that to mongodb and add the checks there to 
-	make sure they're not spamming stuff
+	make sure they're not spamming stuff (DONE)
 */
 
 // MAIN PROGRAM
@@ -181,7 +178,7 @@ class WebmentionReciever {
 	statusCheck(source, target){
 		
 		return new Promise((resolve, reject) => {
-			WebmentionModel.findOne({ source: "http://localhost:3000/file", target: "http://localhost:3000/target" },function(err, webmention) { 
+			WebmentionModel.findOne({ source: source, target: target },function(err, webmention) { 
 				if (err){ 
 					console.log(err)
 					reject(err)
@@ -233,16 +230,23 @@ class WebmentionReciever {
 		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
 			// this will return the old object without the new update
 			if (error) resolve({isProcessing: false, err: error});
-			// what if result.updated doens't exists
-			if(result.isProcessed){
-				addToQueue()	
-
-				resolve({isProcessing: true, err: {message: ""}})
+			// if it's brand new then the result will be null, that means we can just add it directly to the queue
+			if(result){
+				if(result.isProcessed){
+					addToQueue()	
+	
+					resolve({isProcessing: true, err: {message: ""}})
+				} else {
+					// if is processed is false then it's already being processed
+					resolve({isProcessing: true, err: new Error(alreadyBeingProcessedError)})
+	
+				}
 			} else {
-				// if is processed is false then it's already being processed
-				resolve({isProcessing: true, err: new Error(alreadyBeingProcessedError)})
-
+				addToQueue()	
+	
+				resolve({isProcessing: true, err: {message: ""}})
 			}
+			
 
 			
 
@@ -384,7 +388,12 @@ app.get('/status', function (req, res){
 	const source = req.query.source
 	const target = req.query.target
 	reciever.status(source, target).then((msg) => {
-		res.send(msg)
+		if(msg){
+			res.send(msg)
+		} else {
+			res.send("That source-target combination does not exist. Please make sure you have entered them correctly or correctly sent a webmention.")
+		}
+		
 	}).catch((e) => {
 		console.log(e)
 		res.status(400)
