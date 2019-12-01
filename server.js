@@ -6,8 +6,8 @@
 
 - write README.md to how to use it
 
-- rewrite errors as classes 
-- valid resource host should be an array
+- rewrite errors as classes (DONE)
+- valid resource host should be an array (DONE)
 - make database saver modifiable
 - write as a class
 
@@ -37,7 +37,7 @@ var Queue = require('bull');
 var redis = require("redis");
 
 // CONSTANTS
-var validResourceHost = process.env.SITE || "localhost:3000"
+var validResourceHost = [process.env.SITE || "localhost:3000"]
 const statusURLBase = process.env.SITESTATUSBASE || "http://localhost:3000/status"
 class ProtocolError extends Error {
 	constructor(message, isTarget) {
@@ -70,7 +70,7 @@ function checkURLValidity(source, target){
 			throw new ProtocolError("Incorrect protocol for target url", true)
 		}
 		// only other check is valid resource
-		return {isValid: targetURL.host == validResourceHost, err: {message: ""} }
+		return {isValid: validResourceHost.includes(targetURL.host) , err: {message: ""} }
 	} catch(err){
 		return {isValid: false, err: err}
 	}
