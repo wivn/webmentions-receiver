@@ -1,23 +1,22 @@
-/* Improvements:
--  make redis url rely on process or localhost (DONE)
-- make any mentions to localhost rely on constants (DONE)
-- remove all req, res parts out of the Express API so it can be used with any server (DONE)
-- make things like key expiry modifiable, and any mentions of localhost (DONE)
-
+/* 
 - write README.md to how to use it
-
-- rewrite errors as classes (DONE)
-- valid resource host should be an array (DONE)
-- write as a class (DONE)
-	- make database saver modifiable (DONE, just need to extend class)
-
-
-- write database saver (DONE)
-
+	- it's all built-in like I built it but easily change the database saving and status by extending the class
 - revamp status page so it knows whether it's been processed or not
 - add nice home screen
 - add nice page on send with the message
-- use custom domain instead of heroku.app (DONE)
+
+
+TODO:
+
+// add random delay (longer during testing)
+status page response:
+	if webmention exists return last time it was updated and check in Redis whether it's being processed there [there was a requesrt
+		for an update in the last 60 seconds, if your update is not appearing please wait]
+	if webmention doesn't exist then check to see if it's being processed in redis, if it is then say it's being processed if not it never 
+	was sent and tell the user that
+
+	OPTIONAL: use redis just for the job queue and remove the key making thing and just add that to mongodb and add the checks there to 
+	make sure they're not spamming stuff
 */
 
 // MAIN PROGRAM
@@ -45,7 +44,6 @@ const sourceURLTookTooLongToLoad = "Too long to load source"
 const alreadyBeingProcessedError = "AlreadyBeingProcessed"
 const KEY_EXP = Number(process.env.KEYEXP) || 5
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-
 
 class WebmentionReciever {
 	constructor(){
@@ -179,24 +177,28 @@ class WebmentionReciever {
 			
 		}
 	}
-
+	// built-in status page kinda sucks, but that's okay because I want others to write their own static checking logic 
+	statusCheck(source, target){
+		
+		return new Promise((resolve, reject) => {
+			WebmentionModel.findOne({ source: "http://localhost:3000/file", target: "http://localhost:3000/target" },function(err, webmention) { 
+				if (err){ 
+					console.log(err)
+					reject(err)
+					
+				};
+				resolve(webmention)
+			});
+		})
+		
+	}
 	status(source, target){
 		return new Promise( (resolve, reject) => {
-			const key = source + ";" + target;
-			try	{
-				this.client.get(key, (err, data) => {
-					// data is null if the key doesn't exist
-					if(err || data === null) {
-						// if they key doesn't exist it means it hasn't been processed yet or it's already been processed
-						resolve("Your Webmention has been processed or it hasn't been sent yet.")
-					} else {
-						// if the key does exist it means it's being processed
-						resolve("In processing...")
-					}
-				});
-			} catch(e){
+			
+			this.statusCheck(source, target).then(webmention => resolve(webmention)).catch(e => {
+			
 				reject(e)
-			}
+			})
 		})
 		
 	}
@@ -204,29 +206,59 @@ class WebmentionReciever {
 	saveToDatabase(source, target){
 		console.log("saving to local database...")
 		console.log(source, target)
-		var savedWebmention = new WebmentionModel({source: source, target: target, date: new Date()})
+		var query = {source: source, target: target,},
+		update = { updated: new Date(), isProcessed: true },
+		options = { upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
+
+		// Find the document
+		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
+			if (error) return;
+			console.log(result)
+
+			// do something with the document
+		});
+	/*	var savedWebmention = new WebmentionModel({source: source, target: target, updated: new Date()})
 		savedWebmention.save(function (err, object) {
 			if (err) return console.error(err);
-		});
+		});*/
 	}
 
+	mongoIsBeingProcessed(source, target, addToQueue){
+	
+		return new Promise(( resolve, reject) => {
+		var query = {source: source, target: target,},
+		update = { isProcessed: false },
+		options = { upsert: true,  setDefaultsOnInsert: true, useFindAndModify: false};
+
+		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
+			// this will return the old object without the new update
+			if (error) resolve({isProcessing: false, err: error});
+			// what if result.updated doens't exists
+			if(result.isProcessed){
+				addToQueue()	
+
+				resolve({isProcessing: true, err: {message: ""}})
+			} else {
+				// if is processed is false then it's already being processed
+				resolve({isProcessing: true, err: new Error(alreadyBeingProcessedError)})
+
+			}
+
+			
+
+		});
+			
+
+	
+			
+		})
+	}
 	async verifyWebmentionAsync(source, target){
 		return new Promise( (resolve, reject) => {
-			const key = source + ";" + target;
 			
-			try {
-				this.client.get(key, (err, data) => {
-					// data is null if the key doesn't exist
-					if(err || data === null) {
-						this.client.set(key,"not sent",'EX', KEY_EXP);	
-						resolve( {isProcessing: true, err: {message: ""}})
-						
-						this.jobsQueue.add({source: source, target: target});
-	
-					} else {
-						resolve( {isProcessing: true, err: new Error(alreadyBeingProcessedError)})
-					}
-				});
+			try {	
+				resolve(this.mongoIsBeingProcessed(source, target, () => this.jobsQueue.add({source: source, target: target},  { delay: 5000 })))
+				
 			} catch (e){
 				reject({isProcessing: false, err:e})
 			}
@@ -254,7 +286,7 @@ class WebmentionReciever {
 				
 				try{
 					//checking for an exact match, not using per-media-type rules to determine whether target is in the source document
-					console.log(body)
+					
 					resolve(body.includes(target))
 					
 				} catch(e){
@@ -273,10 +305,9 @@ class WebmentionReciever {
 	
 }
 }
-const reciever = new WebmentionReciever()
 
  
-const webmentionSchema = new mongoose.Schema({ source: String, target: String, updated: { type: Date, default: Date.now }});
+const webmentionSchema = new mongoose.Schema({ source: String, isProcessed: Boolean, target: String, updated: Date,date: { type: Date, default: Date.now }});
 var WebmentionModel = mongoose.model('webmention', webmentionSchema);
 function getWebmentions(callback){
 	WebmentionModel.find(function (err, webmentions) {
@@ -295,6 +326,7 @@ function getWebmentions(callback){
 
 
 
+const reciever = new WebmentionReciever()
 
 // EXPRESS SPECIFIC CODE
 const fetch = require('node-fetch');
@@ -354,6 +386,7 @@ app.get('/status', function (req, res){
 	reciever.status(source, target).then((msg) => {
 		res.send(msg)
 	}).catch((e) => {
+		console.log(e)
 		res.status(400)
 		res.send("An error occured. Please try again later.")
 	})
