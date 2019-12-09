@@ -4,11 +4,17 @@
 - revamp status page so it knows whether it's been processed or not (DONE)
 - if request for source returns 400 then delete the webmention (add a deleted property)
 - add nice home screen
-- add nice page on send with the message
+- add nice page on send with the message (DONE)
 - add random delay (longer during testing)
 
-- show that there is an error on status page with the error message (DONE)
+- fix error? if the source URL doesn't exist/doesn't contain the target, it'll fail properly, BUT
+if the target is nonsense then IT STILL PROCCESS IT, note that this doesn't really matter because it won't show up anyways
+- second: if the target isn't mentioned fully like it just contains the first part of the URL it'll still accept it!
+	- that's wayyyy to lieniant. of course right now i want it setup to manually approve, but that isn't sustainable forever
+		that's why the standard mentioned processing it differentyl!! 
 
+- show that there is an error on status page with the error message (DONE)
+- add tests
 
 TODO:
 status page response:
@@ -74,6 +80,8 @@ class WebmentionReciever {
 			reciever.verifyWebmentionSync(source, target).then((value) =>{
 				if(value){
 					reciever.saveToDatabase(source, target)
+				} else {
+					reciever.saveToDatabaseWithError(source, target, "Could not verify that source included target")
 				}
 				done();
 			}).catch((e) => {
@@ -415,6 +423,7 @@ app.get('/', (req, res) => {
 app.get('/seeWebmentions', (req, res) => {
 	getWebmentions((data) => res.json(data))
 })
+// if status page doesnt exist wonky error, fix that TODO clearly not working properly
 app.get('/status', function(req, res){
 	const source = req.query.source
 	const target = req.query.target
@@ -438,12 +447,17 @@ app.post('/webmention', async (req, res) => {
 		res.status(data.status)
 		if(data.locationHeader){
 			res.set('Location', data.locationHeader)
-		} 
-		res.send(data.message)
+			res.render('recieved', {message:data.message, url: data.locationHeader})
+
+		}  else {
+			// note that the sync stuff will go here too, so it'll look like it failed
+			res.render('error-recieved', {message:data.message})
+		}
+		console.log(data.message)
+		
 	}).catch((e) => console.log(e))
 	
 })
-
 app.listen(port, () =>{ 
 	// token will only exist in production
 	if(process.env.LOCAL){
