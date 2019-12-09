@@ -1,0 +1,29 @@
+body {
+    padding: 1em;
+}
+.main {
+    padding: 1em;
+    border: 2px solid grey;
+    border-radius: 0.2em;
+}
+.main__title {
+    font-weight: bold;
+}
+.main__piece--status {
+    font-size: 1.4em;
+}
+.main__piece--error {
+    color: red;
+}
+.main__piece {
+    margin-top: 0.5em;
+    display: block;
+}
+.main__data {
+    padding-left: 1em; 
+}
+.main__form {
+    padding: 1em;
+    text-align: center;
+}
+

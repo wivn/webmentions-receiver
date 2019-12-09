@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<head>
+        <link rel="stylesheet" type="text/css" href="./status.css">
+</head>
+<body>
+    <section class="main">
+        <span class="main__piece main__piece--status"><span class="main__title">Status:</span> <%= data.isProcessed ? "Processed!" : "In processing..."%></span>
+      <% if (data.hasError) {%>  <span class="main__piece main__piece--status main__piece--error"><span class="main__title">Error Message: </span><%= data.errMsg %>. Please try again.</span> <% } %>
+        <span class="main__piece"><span class="main__title">Initial Creation:</span> <%= data.date %></span>
+        <span class="main__piece"><span class="main__title">Last updated:</span> <%= data.updated %> </span>
+        <span class="main__piece"><span class="main__title">Source:</span> <a href="<%= data.source %>"><%= data.source %></a></span>
+        <span class="main__piece"><span class="main__title">Target:</span> <a href="<%= data.target %>"><%= data.target %></a></span>
+        <section >
+            <span class="main__piece main__title">Data:</span>
+            <pre class="main__data"><%= data %></pre>
+        </section>
+        <form method="post" action="/webmention" class="main__form">
+            <input hidden="true" name="source" type="text" value="<%= data.source %>"/>
+            <input hidden="true" name="target" type="text" value="<%= data.target %>"/>
+            <button>Send again?</button>
+        </form>
+        <div>Note: Webmentions will take time to appear as they need to
+        be manually accepted.</div>
+        <div>Note #2: If you've just sent a webmention you must wait
+        about a minute before trying again. </div>
+    </section>
+</body>
+</html>

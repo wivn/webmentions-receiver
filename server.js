@@ -1,13 +1,16 @@
 /* 
 - write README.md to how to use it
 	- it's all built-in like I built it but easily change the database saving and status by extending the class
-- revamp status page so it knows whether it's been processed or not
+- revamp status page so it knows whether it's been processed or not (DONE)
+- if request for source returns 400 then delete the webmention (add a deleted property)
 - add nice home screen
 - add nice page on send with the message
 - add random delay (longer during testing)
 
+- show that there is an error on status page with the error message (DONE)
+
+
 TODO:
-- if request for source returns 400 then delete the webmention (add a deleted property)
 status page response:
 	if webmention exists return last time it was updated and say if its being processed or not (DONE)
 	if webmention doesn't exist then it wasn't sent properly and there's been an error (DONE)
@@ -15,6 +18,9 @@ status page response:
 	OPTIONAL: use redis just for the job queue and remove the key making thing and just add that to mongodb and add the checks there to 
 	make sure they're not spamming stuff (DONE)
 */
+
+// WHAT WILL HAPPEN IF IT'S REJECTED AS IT'S BEING PROCESSED??????????? (DONE)
+// It's not visible to user, make it so it's proccessed, but with error  (DONE)
 
 // MAIN PROGRAM
 const mongoose = require('mongoose');
@@ -56,7 +62,7 @@ class WebmentionReciever {
 			console.log("Error " + err);
 		});
 		this.jobsQueue = new Queue('verfiying', REDIS_URL);
-		this.jobsQueue.process(function(job, done){
+		this.jobsQueue.process((job, done) => {
 
 			// job.data contains the custom data passed when the job was created
 			// job.id contains id of this job.
@@ -72,6 +78,7 @@ class WebmentionReciever {
 				done();
 			}).catch((e) => {
 				console.log(e)
+				this.saveToDatabaseWithError(source, target, e.message)
 				done();
 			})
 			
@@ -199,12 +206,26 @@ class WebmentionReciever {
 		})
 		
 	}
+	saveToDatabaseWithError(source, target, errMsg){
+		console.log("saving to local with error database...")
+		console.log(source, target)
+		var query = {source: source, target: target,},
+		update = { updated: new Date(), isProcessed: true, hasError: true, errMsg:  errMsg},
+		options = { upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
 
+		// Find the document
+		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
+			if (error) return;
+			console.log(result)
+
+			// do something with the document
+		});
+	}
 	saveToDatabase(source, target){
 		console.log("saving to local database...")
 		console.log(source, target)
 		var query = {source: source, target: target,},
-		update = { updated: new Date(), isProcessed: true },
+		update = { updated: new Date(), isProcessed: true, hasError: false, errMsg: null },
 		options = { upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
 
 		// Find the document
@@ -224,7 +245,7 @@ class WebmentionReciever {
 	
 		return new Promise(( resolve, reject) => {
 		var query = {source: source, target: target,},
-		update = { isProcessed: false },
+		update = { isProcessed: false,  hasError: false, errMsg: null },
 		options = { upsert: true,  setDefaultsOnInsert: true, useFindAndModify: false};
 
 		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
@@ -311,7 +332,7 @@ class WebmentionReciever {
 }
 
  
-const webmentionSchema = new mongoose.Schema({ source: String, isProcessed: Boolean, target: String, updated: Date,date: { type: Date, default: Date.now }});
+const webmentionSchema = new mongoose.Schema({ source: String, isProcessed: Boolean, target: String, hasError: Boolean, errMsg: String ,updated: Date,date: { type: Date, default: Date.now }});
 var WebmentionModel = mongoose.model('webmention', webmentionSchema);
 function getWebmentions(callback){
 	WebmentionModel.find(function (err, webmentions) {
@@ -358,6 +379,7 @@ function sendWebMention(source, target, webmentionEndpoint, callback){
 
 
 const express = require('express')
+const path = require('path')
 var bodyParser = require('body-parser')
 const app = express()
 const port =  process.env.PORT || 3000
@@ -366,6 +388,16 @@ app.use(bodyParser.urlencoded({ extended: false }))
  
 // parse application/json
 app.use(bodyParser.json())
+// Require static assets from public folder
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Set 'views' directory for any views 
+// being rendered res.render()
+app.set('views', path.join(__dirname, 'views'));
+
+// Set view engine as EJS
+app.engine('html', require('ejs').renderFile);
+app.set('view engine', 'html');
 
 app.get('/file', (req,res) => {
 	app.set('Content-Type', 'text/html; charset=utf-8')
@@ -383,24 +415,24 @@ app.get('/', (req, res) => {
 app.get('/seeWebmentions', (req, res) => {
 	getWebmentions((data) => res.json(data))
 })
-app.get('/status', function (req, res){
-	// http://localhost:3000/status?source=localhost:3000/file&target=localhost:3000/target
+app.get('/status', function(req, res){
 	const source = req.query.source
 	const target = req.query.target
 	reciever.status(source, target).then((msg) => {
 		if(msg){
-			res.send(msg)
+			res.render('status', {data: msg, err: null});
 		} else {
-			res.send("That source-target combination does not exist. Please make sure you have entered them correctly or correctly sent a webmention.")
+			res.render('status', {data: null, err: "That source-target combination does not exist. Please make sure you have entered them correctly or correctly sent a webmention."})
 		}
 		
 	}).catch((e) => {
 		console.log(e)
 		res.status(400)
-		res.send("An error occured. Please try again later.")
+		res.render('status', {data: null, err:  "An error occured. Please try again later."})
 	})
 	
 })
+
 app.post('/webmention', async (req, res) => {
 	reciever.recieveWebmention(req.body.source, req.body.target).then((data) => {
 		res.status(data.status)
