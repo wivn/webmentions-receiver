@@ -1,0 +1,10 @@
+body {
+    text-align: center;
+}
+.message {padding: 1em;}
+.message--error {
+    color: red;
+}
+.status-url {
+    font-size: 2em;
+}
