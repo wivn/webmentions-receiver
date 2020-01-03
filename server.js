@@ -31,6 +31,7 @@ status page response:
 // MAIN PROGRAM
 const mongoose = require('mongoose');
 const { http, https } = require('follow-redirects');
+var cors = require('cors')
 var sanitizeHtml = require('sanitize-html');
 const cheerio = require('cheerio')
 const uuidv4 = require('uuid/v4');
@@ -488,7 +489,7 @@ app.post('/webmention', async (req, res) => {
 	}).catch((e) => console.log(e))
 	
 })
-app.get("/webmentions",  (req, res) => {
+app.get("/webmentions",  cors(), (req, res) => {
 	var target = req.query.target
 	console.log(target)
 	WebmentionModel.findOne({ target: target },function(err, webmention) { 
