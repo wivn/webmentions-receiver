@@ -31,6 +31,8 @@ status page response:
 // MAIN PROGRAM
 const mongoose = require('mongoose');
 const { http, https } = require('follow-redirects');
+var sanitizeHtml = require('sanitize-html');
+const cheerio = require('cheerio')
 const uuidv4 = require('uuid/v4');
 const followRedirects = require('follow-redirects')
 followRedirects.maxRedirects = 10;
@@ -78,8 +80,8 @@ class WebmentionReciever {
 			
 			// if it's mentioned the job will be complete, and it will call the callback
 			reciever.verifyWebmentionSync(source, target).then((value) =>{
-				if(value){
-					reciever.saveToDatabase(source, target)
+				if(value.isIncluded){
+					reciever.saveToDatabase(source, target, value.document)
 				} else {
 					reciever.saveToDatabaseWithError(source, target, "Could not verify that source included target")
 				}
@@ -152,8 +154,8 @@ class WebmentionReciever {
 					
 				} else {
 					const isMentioned = await verifyWebmentionSync(source, target)
-					if(isMentioned){
-						this.saveToDatabase(source, target)
+					if(isMentioned.isIncluded){
+						this.saveToDatabase(source, target, isMentioned.document)
 						return {message: "SUCCESSFULLY RECIEVED WEBMENTION",
 							 locationHeader: null, status: 200}
 					} else {
@@ -229,12 +231,12 @@ class WebmentionReciever {
 			// do something with the document
 		});
 	}
-	saveToDatabase(source, target){
+	saveToDatabase(source, target, document){
 		console.log("saving to local database...")
 		console.log(source, target)
 		var query = {source: source, target: target,},
-		update = { updated: new Date(), isProcessed: true, hasError: false, errMsg: null },
-		options = { upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
+		update = { updated: new Date(), isProcessed: true, hasError: false, errMsg: null, document: document, },
+		options = {  upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
 
 		// Find the document
 		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
@@ -286,6 +288,34 @@ class WebmentionReciever {
 			
 		})
 	}
+
+	parseComment(document){
+		const $ = cheerio.load(document)
+		var date = $('.dt-published').text()
+		if(date == ""){
+			date = new Date()
+		}
+		var text = $('.e-content').text()
+		// should trunucate
+		// if no e-content or e-content is too long
+		if(text == ""){
+			text = $(".p-summary").text()
+			// if p-summary is also blank use p-name
+			if(text == "")	{
+				text = $('.p-name').text()
+			}
+		} 
+		text = sanitizeHtml(text, {
+			allowedTags: [ 'b', 'i', 'em', 'strong', 'a' ],
+			allowedAttributes: {
+			  'a': [ 'href' ]
+			},
+			allowedIframeHostnames: ['www.youtube.com']
+		});
+		console.log(date)
+		return {date: date , text: text}
+	}
+
 	async verifyWebmentionAsync(source, target){
 		return new Promise( (resolve, reject) => {
 			
@@ -302,7 +332,7 @@ class WebmentionReciever {
 	/*The receiver SHOULD check that target is a valid resource for which it can accept Webmentions. This check SHOULD happen synchronously to reject invalid Webmentions before more in-depth verification begins. What a "valid resource" means is up to the receiver. For example, some receivers may accept Webmentions for multiple domains, others may accept Webmentions for only the same domain the endpoint is on.*/
 	async  verifyWebmentionSync(source, target){
 	// verify that the target url is mentioned in the source
-	return new Promise(function (resolve, reject){
+	return new Promise( (resolve, reject) => {
 		var beginRequest;
 		if(new URL(source).protocol == 'http' || process.env.LOCAL){
 			beginRequest = http;
@@ -315,12 +345,12 @@ class WebmentionReciever {
 				resolve(false)
 			}
 			res.setEncoding('utf8');
-			res.on('data', function (body) {
+			res.on('data',  (body) => {
 				
 				try{
 					//checking for an exact match, not using per-media-type rules to determine whether target is in the source document
 					
-					resolve(body.includes(target))
+					resolve({isIncluded: body.includes(target), document: this.parseComment(body)})
 					
 				} catch(e){
 					reject(e)
@@ -340,7 +370,7 @@ class WebmentionReciever {
 }
 
  
-const webmentionSchema = new mongoose.Schema({ source: String, isProcessed: Boolean, target: String, hasError: Boolean, errMsg: String ,updated: Date,date: { type: Date, default: Date.now }});
+const webmentionSchema = new mongoose.Schema({ source: String, document: {date: String, text: String}, isProcessed: Boolean, target: String, hasError: Boolean, errMsg: String ,updated: Date,date: { type: Date, default: Date.now }});
 var WebmentionModel = mongoose.model('webmention', webmentionSchema);
 function getWebmentions(callback){
 	WebmentionModel.find(function (err, webmentions) {
@@ -457,6 +487,18 @@ app.post('/webmention', async (req, res) => {
 		
 	}).catch((e) => console.log(e))
 	
+})
+app.get("/webmentions",  (req, res) => {
+	var target = req.query.target
+	console.log(target)
+	WebmentionModel.findOne({ target: target },function(err, webmention) { 
+		if (err){ 
+			console.log(err)
+			res.send("Can't find")
+			
+		};
+		res.send(webmention)
+	});
 })
 app.listen(port, () =>{ 
 	// token will only exist in production
