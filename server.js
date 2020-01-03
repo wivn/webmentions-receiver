@@ -498,7 +498,7 @@ app.get("/webmentions",  cors(), (req, res) => {
 			res.send("Can't find")
 			
 		};
-		res.send(webmention)
+		res.json(webmention)
 	});
 })
 app.listen(port, () =>{ 
