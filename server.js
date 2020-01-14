@@ -62,12 +62,12 @@ class WebmentionReciever {
 				if(value.isIncluded){
 					reciever.saveToDatabase(source, target, value.document)
 				} else {
-					reciever.saveToDatabaseWithError(source, target, "Could not verify that source included target")
+					reciever.saveToDatabase(source, target, null, true, "Could not verify that source included target")
 				}
 				done();
 			}).catch((e) => {
 				console.log(e)
-				this.saveToDatabaseWithError(source, target, e.message)
+				this.saveToDatabase(source, target, null , true, e.message)
 				done();
 			})
 			
@@ -194,21 +194,6 @@ class WebmentionReciever {
 			})
 		})
 		
-	}
-	saveToDatabaseWithError(source, target, errMsg){
-		console.log("saving to local with error database...")
-		console.log(source, target)
-		var query = {source: source, target: target,},
-		update = { updated: new Date(), isProcessed: true, hasError: true, errMsg:  errMsg},
-		options = { upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
-
-		// Find the document
-		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
-			if (error) return;
-			console.log(result)
-
-			// do something with the document
-		});
 	}
 	saveToDatabase(source, target, document, hasError=false, errMsg=null){
 		console.log("saving to local database...")
@@ -420,7 +405,7 @@ app.get('/file', (req,res) => {
 	app.set('Content-Type', 'text/html; charset=utf-8')
 	setTimeout(function () {
         res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
-    }, 0);
+    }, 6000);
 	
 })
 app.get('/', (req, res) => {
