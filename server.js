@@ -1,32 +1,15 @@
 /* 
 - write README.md to how to use it
 	- it's all built-in like I built it but easily change the database saving and status by extending the class
-- revamp status page so it knows whether it's been processed or not (DONE)
+- add tests
+- add random delay (longer during testing)
 - if request for source returns 400 then delete the webmention (add a deleted property)
 - add nice home screen
-- add nice page on send with the message (DONE)
-- add random delay (longer during testing)
+- deal with different media types properly
+- revamp code to be pretty
 
-- fix error? if the source URL doesn't exist/doesn't contain the target, it'll fail properly, BUT
-if the target is nonsense then IT STILL PROCCESS IT, note that this doesn't really matter because it won't show up anyways
-- second: if the target isn't mentioned fully like it just contains the first part of the URL it'll still accept it!
-	- that's wayyyy to lieniant. of course right now i want it setup to manually approve, but that isn't sustainable forever
-		that's why the standard mentioned processing it differentyl!! 
-
-- show that there is an error on status page with the error message (DONE)
-- add tests
-
-TODO:
-status page response:
-	if webmention exists return last time it was updated and say if its being processed or not (DONE)
-	if webmention doesn't exist then it wasn't sent properly and there's been an error (DONE)
-
-	OPTIONAL: use redis just for the job queue and remove the key making thing and just add that to mongodb and add the checks there to 
-	make sure they're not spamming stuff (DONE)
+- revamp status page so it knows whether it's been processed or not (DONE)
 */
-
-// WHAT WILL HAPPEN IF IT'S REJECTED AS IT'S BEING PROCESSED??????????? (DONE)
-// It's not visible to user, make it so it's proccessed, but with error  (DONE)
 
 // MAIN PROGRAM
 const mongoose = require('mongoose');
@@ -232,11 +215,11 @@ class WebmentionReciever {
 			// do something with the document
 		});
 	}
-	saveToDatabase(source, target, document){
+	saveToDatabase(source, target, document, hasError=false, errMsg=null){
 		console.log("saving to local database...")
 		console.log(source, target)
 		var query = {source: source, target: target,},
-		update = { updated: new Date(), isProcessed: true, hasError: false, errMsg: null, document: document, },
+		update = { updated: new Date(), isProcessed: true, hasError: hasError, errMsg: errMsg, document: document, },
 		options = {  upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
 
 		// Find the document
