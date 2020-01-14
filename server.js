@@ -21,7 +21,6 @@ const uuidv4 = require('uuid/v4');
 const followRedirects = require('follow-redirects')
 followRedirects.maxRedirects = 10;
 var Queue = require('bull');
-var redis = require("redis");
 
 // CONSTANTS
 var validResourceHost = [process.env.SITE || "localhost:3000"]
@@ -48,10 +47,6 @@ class WebmentionReciever {
 		this.db.on('error', console.error.bind(console, 'connection error:'));
 		this.db.once('open', function() {
 		// we're connected!
-		});
-		this.client = redis.createClient({url: REDIS_URL});
-		this.client.on("error", function (err) {
-			console.log("Error " + err);
 		});
 		this.jobsQueue = new Queue('verfiying', REDIS_URL);
 		this.jobsQueue.process((job, done) => {
