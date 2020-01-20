@@ -59,11 +59,11 @@ class WebmentionReciever {
 			const target = job.data.target
 			
 			// if it's mentioned the job will be complete, and it will call the callback
-			reciever.verifyWebmentionSync(source, target).then((value) =>{
+			this.verifyWebmentionSync(source, target).then((value) =>{
 				if(value.isIncluded){
-					reciever.saveToDatabase(source, target, value.document)
+					this.saveToDatabase(source, target, value.document)
 				} else {
-					reciever.saveToDatabase(source, target, null, true, "Could not verify that source included target")
+					this.saveToDatabase(source, target, null, true, "Could not verify that source included target")
 				}
 				done();
 			}).catch((e) => {
