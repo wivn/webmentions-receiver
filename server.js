@@ -48,6 +48,7 @@ class WebmentionReciever {
 		this.db.once('open', function() {
 		// we're connected!
 		});
+		this.delayProcessing = 0
 		this.jobsQueue = new Queue('verfiying', REDIS_URL);
 		this.jobsQueue.process((job, done) => {
 
@@ -284,7 +285,7 @@ class WebmentionReciever {
 		return new Promise( (resolve, reject) => {
 			
 			try {	
-				resolve(this.mongoIsBeingProcessed(source, target, () => this.jobsQueue.add({source: source, target: target},  { delay: 5000 })))
+				resolve(this.mongoIsBeingProcessed(source, target, () => this.jobsQueue.add({source: source, target: target},  { delay: this.delayProcessing })))
 				
 			} catch (e){
 				reject({isProcessing: false, err:e})
@@ -352,7 +353,6 @@ function getWebmentions(callback){
 
 
 
-
 const reciever = new WebmentionReciever()
 
 // EXPRESS SPECIFIC CODE
@@ -405,7 +405,7 @@ app.get('/file', (req,res) => {
 	app.set('Content-Type', 'text/html; charset=utf-8')
 	setTimeout(function () {
         res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
-    }, 6000);
+    }, 0);
 	
 })
 app.get('/', (req, res) => {
@@ -418,20 +418,27 @@ app.get('/seeWebmentions', (req, res) => {
 	getWebmentions((data) => res.json(data))
 })
 // if status page doesnt exist wonky error, fix that TODO clearly not working properly
+function sendStatus(req, res, data){
+	if(!(req.get('Accept') === 'application/json')) {
+        res.render("status", data);
+    } else {
+		res.json(data)
+	}
+}
 app.get('/status', function(req, res){
 	const source = req.query.source
 	const target = req.query.target
 	reciever.status(source, target).then((msg) => {
 		if(msg){
-			res.render('status', {data: msg, err: null});
+			sendStatus(req, res, {data: msg, err: null});
 		} else {
-			res.render('status', {data: null, err: "That source-target combination does not exist. Please make sure you have entered them correctly or correctly sent a webmention."})
+			sendStatus(req, res, {data: null, err: "That source-target combination does not exist. Please make sure you have entered them correctly or correctly sent a webmention."})
 		}
 		
 	}).catch((e) => {
 		console.log(e)
 		res.status(400)
-		res.render('status', {data: null, err:  "An error occured. Please try again later."})
+		sendStatus(req, res, {data: null, err:  "An error occured. Please try again later."})
 	})
 	
 })
