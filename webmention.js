@@ -83,27 +83,20 @@ class WebmentionReciever {
 	}
 
 	async recieveWebmention(source, target){
-		const isAsync = true
-		const showStatus = true
 		
 		const urlValidityCheck = this.checkURLValidity(source, target)
 		const isValidURL = urlValidityCheck.isValid
 		if(isValidURL && source != target){
 			try {
-				if(isAsync){
+		
 					const isMentionedCheck = await this.verifyWebmentionAsync(source, target)
 					
 					if(isMentionedCheck.isProcessing && isMentionedCheck.err.message == ""){
 						
-						if(showStatus){
 							const statusURL = `${statusURLBase}?source=${source}&target=${target}`
 							return {message: "You can check the progress at " + statusURL, locationHeader: statusURL, status: 201}
 	
-						} else {
-							// response 202 because there is no status page and realistically it shouldn't take too long to run
-							return {message: "Your request will now be processed. Your Webmention should appear shortly.",
-							 locationHeader: null, status: 202}
-						}
+						
 						
 					} else {
 						const err = isMentionedCheck.err
@@ -118,17 +111,7 @@ class WebmentionReciever {
 					}
 					
 					
-				} else {
-					const isMentioned = await verifyWebmentionSync(source, target)
-					if(isMentioned.isIncluded){
-						this.saveToDatabase(source, target, isMentioned.document)
-						return {message: "SUCCESSFULLY RECIEVED WEBMENTION",
-							 locationHeader: null, status: 200}
-					} else {
-						return {message: "Cannot not find the target URL in the source URL provided",
-							 locationHeader: null, status: 400}
-					}
-				}
+				
 				
 				
 			} catch(e){
