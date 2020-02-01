@@ -306,17 +306,5 @@ class WebmentionReciever {
  
 const webmentionSchema = new mongoose.Schema({ source: String, document: {date: String, text: String}, isProcessed: Boolean, target: String, hasError: Boolean, errMsg: String ,updated: Date,date: { type: Date, default: Date.now }});
 var WebmentionModel = mongoose.model('webmention', webmentionSchema);
-function getWebmentions(callback){
-	WebmentionModel.find(function (err, webmentions) {
-		if (err) return console.error(err);
-		callback(webmentions);
-	})
-	/*
-	// gets latest with that source and target
-	WebmentionModel.findOne({ source: "http://localhost:3000/file", target: "http://localhost:3000/target" }).sort({created_at: -1}).exec(function(err, webmention) { 
-		if (err) return console.error(err);
-	  	console.log(webmention)
-	 });*/
-}
 exports.WebmentionReciever = WebmentionReciever
 exports.WebmentionModel = WebmentionModel
