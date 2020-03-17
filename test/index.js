@@ -1,4 +1,5 @@
 var expect  = require('chai').expect;
+const path = require('path')
 const express = require('express')
 var request = require('request');
 var WebmentionReciever = require('../webmention.js').WebmentionReciever
@@ -19,14 +20,14 @@ function createTestServingFile(){
     app.get('/file', (req,res) => {
         app.set('Content-Type', 'text/html; charset=utf-8')
         setTimeout(function () {
-            res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
+            res.sendFile(path.resolve('../test/index.html'))
         }, 0);
         
     })
     app.get("/tooLongToLoadFile", (req, res) => {
         app.set('Content-Type', 'text/html; charset=utf-8')
         setTimeout(function () {
-            res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
+            res.sendFile(path.resolve('../test/index.html'))
         }, 5001);
     })
     

@@ -85,7 +85,8 @@ app.set('view engine', 'html');
 app.get('/file', (req,res) => {
 	app.set('Content-Type', 'text/html; charset=utf-8')
 	setTimeout(function () {
-        res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
+		
+        res.sendFile(path.resolve('test/index.html') )
     }, 0);
 	
 })
