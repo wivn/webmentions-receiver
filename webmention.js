@@ -34,7 +34,7 @@ class WebmentionReciever {
 		this.db.once('open', function() {
 		// we're connected!
 		});
-		this.delayProcessing = 0
+		this.delayProcessing = 200
 		this.jobsQueue = new Queue('verfiying', REDIS_URL);
 		this.jobsQueue.process((job, done) => {
 
@@ -62,6 +62,9 @@ class WebmentionReciever {
 		
 		});
 
+	}
+	closeDBConnection(){
+		return mongoose.disconnect();
 	}
 	// checks that URL is either http or https and that it's including the host url
 	checkURLValidity(source, target){
@@ -105,6 +108,8 @@ class WebmentionReciever {
 							return {message: "Your request is being processed. Please wait at least one minute before trying again.",
 							 locationHeader: null, status: 400}
 						} else {
+							// only a database error in findOneAndUpdate will trigger this line
+							/* istanbul ignore next */
 							return {message: "Error in processing. Please try again.",
 							 locationHeader: null, status: 400}
 						}
@@ -115,7 +120,8 @@ class WebmentionReciever {
 				
 				
 			} catch(e){
-				console.log(e)
+				// terrible unforseable error needs to occur in order for this to come into play
+				/* istanbul ignore next */
 				return {message: "Error with loading source URL",
 							 locationHeader: null, status: 400}
 			}
@@ -145,11 +151,8 @@ class WebmentionReciever {
 		
 		return new Promise((resolve, reject) => {
 			WebmentionModel.findOne({ source: source, target: target },function(err, webmention) { 
-				if (err){ 
-					console.log(err)
-					reject(err)
+				if (err) reject(err)
 					
-				};
 				resolve(webmention)
 			});
 		})
@@ -158,10 +161,8 @@ class WebmentionReciever {
 	status(source, target){
 		return new Promise( (resolve, reject) => {
 			
-			this.statusCheck(source, target).then(webmention => resolve(webmention)).catch(e => {
-			
-				reject(e)
-			})
+			this.statusCheck(source, target).then(webmention => resolve(webmention)).catch(e => reject(e)
+			)
 		})
 		
 	}
@@ -252,12 +253,13 @@ class WebmentionReciever {
 	async verifyWebmentionAsync(source, target){
 		return new Promise( (resolve, reject) => {
 			
-			try {	
+			//try {	
 				resolve(this.mongoIsBeingProcessed(source, target, () => this.jobsQueue.add({source: source, target: target},  { delay: this.delayProcessing })))
 				
-			} catch (e){
+			/*} catch (e){
+				// REMOVAL, I think any errors would be caught in the mongoisbeingprocessed part
 				reject({isProcessing: false, err:e})
-			}
+			}*/
 		
 		})
 	
@@ -285,15 +287,17 @@ class WebmentionReciever {
 					//checking for an exact match, not using per-media-type rules to determine whether target is in the source document
 					
 					resolve({isIncluded: body.includes(target), document: this.parseComment(body)})
-					
+	
 				} catch(e){
+					// error needs to happen in parseCommment, no way I can get that to happen	
+					/* istanbul ignore next */
 					reject(e)
 				}
 				 
 			});
 		});
-		// if it takes more than 5 seconds to load then cancel request
-		request.setTimeout(5000, function(){
+		// if it takes more than 2 seconds to load then cancel request
+		request.setTimeout(2000, function(){
 			request.abort()
 			reject(new Error(sourceURLTookTooLongToLoad))
 		})

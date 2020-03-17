@@ -1,8 +1,9 @@
 var expect  = require('chai').expect;
+const express = require('express')
 var request = require('request');
 var WebmentionReciever = require('../webmention.js').WebmentionReciever
 var WebmentionModel = require("../webmention.js").WebmentionModel
-describe('Stanity tests', function() {
+/*describe('Stanity tests', function() {
     it('Page loads', function(done) {
         request('http://localhost:3000' , function(error, response) {
             expect(response.statusCode).to.equal(200);
@@ -10,18 +11,54 @@ describe('Stanity tests', function() {
         });
     })
 })
-
+*/
 // WEBMENTION RECIEVER UNIT TESTS
+
+function createTestServingFile(){
+    const app = express()
+    app.get('/file', (req,res) => {
+        app.set('Content-Type', 'text/html; charset=utf-8')
+        setTimeout(function () {
+            res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
+        }, 0);
+        
+    })
+    app.get("/tooLongToLoadFile", (req, res) => {
+        app.set('Content-Type', 'text/html; charset=utf-8')
+        setTimeout(function () {
+            res.sendFile('/Users/nicolaswilhelm/Desktop/url-organizer/webmentions/folder/index.html')
+        }, 5001);
+    })
+    
+    return app
+}
 describe("Unit Tests Recieving", function () {
     // if i move         var webmention =  new WebmentionReciever() to here it goes wonky why?
-    var webmention =  new WebmentionReciever()
+    var webmention;
+    var server;
+    before(function(done) {
+        // runs once before the first test in this block
+        var app = createTestServingFile()
+        server = app.listen(3000, function () {done()})
+      })
+    
+      after(function(done) {
+        // runs once after the last test in this block
+        server.close(done)
+    })
     beforeEach(function(done) {
-        WebmentionModel.remove({}, () => done() )
+        webmention =  new WebmentionReciever();
+        WebmentionModel.remove({}, () => done() )  
     });
+    afterEach(function(done) {
+        webmention.closeDBConnection().then(()=>done())
+    })
 
     it("Successfully send webmention", function (done){
+
         webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) => {
             expect(data.status).to.equal(201);
+
             expect(data.locationHeader).to.equal("http://localhost:3000/status?source=http://localhost:3000/file&target=http://localhost:3000/target")    
             done()
         }).catch((e) => console.log(e))
@@ -70,18 +107,30 @@ describe("Unit Tests Recieving", function () {
                     done()
                 }
             )
-            },100)
+            // this needs to match the process delay
+            },400)
             
             })
         })
     
     it("Check a status for something that doesn't exist", function (done){
         webmention.status("http://example.com", "https://example.com/target").then((data) => {
-            console.log("running the test")
             expect(data).equal(null)
             done()
         })
     })
+
+    it("Check that I can't send something too fast", function (done){
+        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target")
+        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
+            expect(data.message).equal("Your request is being processed. Please wait at least one minute before trying again.")
+            expect(data.status).equal(400)
+            
+            done()
+         })
+    })
+
+   
 
     it("Check document parser", function (done){
         var data = webmention.parseComment(`<!doctype html>
@@ -97,6 +146,76 @@ describe("Unit Tests Recieving", function () {
         expect(data.text).equal("I am using node.js for webmention")
         done()
     })
+
+    it("Does not include target", function (done){
+        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/nonExistentTarget").then((data) =>{
+            expect(data.status).equal(201)
+            setTimeout( () => {
+                webmention.status("http://localhost:3000/file", "http://localhost:3000/nonExistentTarget").then((statusData) => {
+                    expect(statusData.isProcessed).equal(true)
+                    expect(statusData.hasError).equal(true)
+                    expect(statusData.errMsg).equal("Could not verify that source included target")
+                    done()
+                }
+            )
+            // this needs to match the process delay
+            },400)
+         })
+    })
+    it("Source takes too long", function (done){
+        this.timeout(3000)
+        webmention.recieveWebmention("http://localhost:3000/tooLongToLoadFile", "http://localhost:3000/target").then((data) =>{
+            expect(data.status).equal(201)
+            setTimeout( () => {
+                webmention.status("http://localhost:3000/tooLongToLoadFile", "http://localhost:3000/target").then((statusData) => {
+                    console.log(statusData)
+                    done()
+                }
+            )
+            // this needs to match the process delay
+            },400)
+         })
+    })
+    it("Error for status", function (done){
+        webmention.status("http://localhost:3000/fakeSource", "http://localhost:3000/fakeTarget").then((statusData) => {
+            expect(statusData).equal(null)
+            done()
+        }).catch((e) => console.log(e))
+    })
+
+    it("Check document parser can parse more spare documents", function (done){
+        var data = webmention.parseComment(`<!doctype html>
+        <html>
+          <body>
+            <div class="p-name">Hello!</div>        
+          </body>
+        </html>`)
+        expect(data.text).equal('Hello!')
+        expect(data.date.getDate()).equal(new Date().getDate())
+        done()
+    })
+
+    it("Use an https link for the source", function (done){
+        webmention.recieveWebmention("https://www.nicowil.me/posts/adding-additon-to-js", "http://localhost:3000/target").then((data) =>{
+            expect(data.status).equal(201)
+            done()
+         })
+    })
+
+    it("Update a document", function (done){
+        this.timeout(2500)
+        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
+            expect(data.status).equal(201)
+            setTimeout( () => {
+                webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
+                    expect(data.status).equal(201)
+                    done()
+             })
+            },1000)
+            
+         })
+    })
+    
 })
 
 
@@ -131,7 +250,7 @@ describe('Basic Webmention Sending Tests', function (){
     })
     
 
-})*/
+})
 // can check HTML here for webmention sending
 // try every single error
 const fetch = require('node-fetch');
@@ -155,4 +274,4 @@ function sendWebMention(source, target, webmentionEndpoint, callback){
 			callback(undefined, err)
 		}
 	)
-}
+}*/
