@@ -163,17 +163,11 @@ class WebmentionReciever {
 		update = { updated: new Date(), isProcessed: true, hasError: hasError, errMsg: errMsg, document: document, },
 		options = {  upsert: true, new: true, setDefaultsOnInsert: true , useFindAndModify: false};
 
-		// Find the document
 		WebmentionModel.findOneAndUpdate(query, update, options, function(error, result) {
 			if (error) return;
 			console.log(result)
 
-			// do something with the document
 		});
-	/*	var savedWebmention = new WebmentionModel({source: source, target: target, updated: new Date()})
-		savedWebmention.save(function (err, object) {
-			if (err) return console.error(err);
-		});*/
 	}
 
 	mongoIsBeingProcessed(source, target, addToQueue){
@@ -243,13 +237,9 @@ class WebmentionReciever {
 	async verifyWebmentionAsync(source, target){
 		return new Promise( (resolve, reject) => {
 			
-			//try {	
 				resolve(this.mongoIsBeingProcessed(source, target, () => this.jobsQueue.add({source: source, target: target},  { delay: this.delayProcessing })))
 				
-			/*} catch (e){
-				// REMOVAL, I think any errors would be caught in the mongoisbeingprocessed part
-				reject({isProcessing: false, err:e})
-			}*/
+			
 		
 		})
 	
