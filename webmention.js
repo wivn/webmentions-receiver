@@ -3,7 +3,6 @@ const { http, https } = require('follow-redirects');
 var cors = require('cors')
 var sanitizeHtml = require('sanitize-html');
 const cheerio = require('cheerio')
-const uuidv4 = require('uuid/v4');
 const followRedirects = require('follow-redirects')
 followRedirects.maxRedirects = 10;
 var Queue = require('bull');
@@ -146,23 +145,14 @@ class WebmentionReciever {
 			
 		}
 	}
-	// built-in status page kinda sucks, but that's okay because I want others to write their own static checking logic 
-	statusCheck(source, target){
-		
-		return new Promise((resolve, reject) => {
+
+	status(source, target){
+		return new Promise( (resolve, reject) => {
 			WebmentionModel.findOne({ source: source, target: target },function(err, webmention) { 
 				if (err) reject(err)
 					
 				resolve(webmention)
-			});
-		})
-		
-	}
-	status(source, target){
-		return new Promise( (resolve, reject) => {
-			
-			this.statusCheck(source, target).then(webmention => resolve(webmention)).catch(e => reject(e)
-			)
+			})
 		})
 		
 	}
