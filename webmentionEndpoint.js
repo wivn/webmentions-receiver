@@ -137,11 +137,6 @@ function sendWebMention(source, target, webmentionEndpoint, callback){
 		callback(undefined, err)
 	)
 }
-const util = require('util')
-// NEED TO TEST UPDATING AND DELETING
-//const targetTest = "https://webmention.rocks/update/1"
-//const endpointTest = "https://webmention.rocks/update/1/part/1/webmention?key=dUbqTrYMkEOsq8xzTynx"
-//sendWebMention("https://silly-site-v2.netlify.com/", targetTest, endpointTest,function (response, err){})
 
 
 
