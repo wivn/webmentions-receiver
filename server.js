@@ -1,16 +1,3 @@
-/* 
-- write README.md to how to use it
-	- it's all built-in like I built it but easily change the database saving and status by extending the class
-- add tests
-- add random delay (longer during testing)
-- if request for source returns 400 then delete the webmention (add a deleted property)
-- add nice home screen
-- deal with different media types properly
-- revamp code to be pretty
-
-- revamp status page so it knows whether it's been processed or not (DONE)
-*/
-
 // MAIN PROGRAM
 var cors = require('cors')
 var WebmentionReciever = require('./webmention.js').WebmentionReciever
@@ -23,12 +10,6 @@ function getWebmentions(callback){
 		if (err) return console.error(err);
 		callback(webmentions);
 	})
-	/*
-	// gets latest with that source and target
-	WebmentionModel.findOne({ source: "http://localhost:3000/file", target: "http://localhost:3000/target" }).sort({created_at: -1}).exec(function(err, webmention) { 
-		if (err) return console.error(err);
-	  	console.log(webmention)
-	 });*/
 }
 
 
@@ -95,11 +76,11 @@ app.get('/', (req, res) => {
 	res.send("called")
 	
 })
-// can pretty easily save to Github with the click of a button once approved, just save them all in a file
+
 app.get('/seeWebmentions', (req, res) => {
 	getWebmentions((data) => res.json(data))
 })
-// if status page doesnt exist wonky error, fix that TODO clearly not working properly
+
 function sendStatus(req, res, data){
 	if(!(req.get('Accept') === 'application/json')) {
         res.render("status", data);
@@ -154,7 +135,6 @@ app.get("/webmentions",  cors(), (req, res) => {
 	});
 })
 app.listen(port, () =>{ 
-	// token will only exist in production
 	if(process.env.LOCAL){
 		sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
 		res.text().then((body) => console.log(body))
