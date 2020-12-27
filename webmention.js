@@ -24,7 +24,7 @@ const alreadyBeingProcessedError = "AlreadyBeingProcessed"
 const KEY_EXP = Number(process.env.KEYEXP) || 5
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 
-class WebmentionReciever {
+class WebmentionReceiver {
 	constructor(){
 		mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:3031/meteor', {useNewUrlParser: true, useUnifiedTopology:true 
 		});
@@ -84,7 +84,7 @@ class WebmentionReciever {
 		}
 	}
 
-	async recieveWebmention(source, target){
+	async receiveWebmention(source, target){
 		
 		const urlValidityCheck = this.checkURLValidity(source, target)
 		const isValidURL = urlValidityCheck.isValid
@@ -290,5 +290,5 @@ class WebmentionReciever {
  
 const webmentionSchema = new mongoose.Schema({ source: String, document: {date: String, text: String}, isProcessed: Boolean, target: String, hasError: Boolean, errMsg: String ,updated: Date,date: { type: Date, default: Date.now }});
 var WebmentionModel = mongoose.model('webmention', webmentionSchema);
-exports.WebmentionReciever = WebmentionReciever
+exports.WebmentionReceiver = WebmentionReceiver
 exports.WebmentionModel = WebmentionModel

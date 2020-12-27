@@ -2,18 +2,10 @@ var expect  = require('chai').expect;
 const path = require('path')
 const express = require('express')
 var request = require('request');
-var WebmentionReciever = require('../webmention.js').WebmentionReciever
+var WebmentionReceiver = require('../webmention.js').WebmentionReceiver
 var WebmentionModel = require("../webmention.js").WebmentionModel
-/*describe('Stanity tests', function() {
-    it('Page loads', function(done) {
-        request('http://localhost:3000' , function(error, response) {
-            expect(response.statusCode).to.equal(200);
-            done();
-        });
-    })
-})
-*/
-// WEBMENTION RECIEVER UNIT TESTS
+
+// WEBMENTION RECEIVER UNIT TESTS
 
 function createTestServingFile(){
     const app = express()
@@ -33,8 +25,8 @@ function createTestServingFile(){
     
     return app
 }
-describe("Unit Tests Recieving", function () {
-    // if i move         var webmention =  new WebmentionReciever() to here it goes wonky why?
+describe("Tests Receiving", function () {
+
     var webmention;
     var server;
     before(function(done) {
@@ -48,7 +40,7 @@ describe("Unit Tests Recieving", function () {
         server.close(done)
     })
     beforeEach(function(done) {
-        webmention =  new WebmentionReciever();
+        webmention =  new WebmentionReceiver();
         WebmentionModel.remove({}, () => done() )  
     });
     afterEach(function(done) {
@@ -57,7 +49,7 @@ describe("Unit Tests Recieving", function () {
 
     it("Successfully send webmention", function (done){
 
-        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) => {
+        webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) => {
             expect(data.status).to.equal(201);
 
             expect(data.locationHeader).to.equal("http://localhost:3000/status?source=http://localhost:3000/file&target=http://localhost:3000/target")    
@@ -65,7 +57,7 @@ describe("Unit Tests Recieving", function () {
         }).catch((e) => console.log(e))
     })
     it("Error with source url", function (done){
-        webmention.recieveWebmention("fakeprotocol://example.com", "http://localhost:3000/target").then((data) => {
+        webmention.receiveWebmention("fakeprotocol://example.com", "http://localhost:3000/target").then((data) => {
             expect(data.status).to.equal(400)
             expect(data.message).to.equal('Source URLs are required to start with http:// or https://')
             expect(data.locationHeader).to.equal(null)
@@ -73,7 +65,7 @@ describe("Unit Tests Recieving", function () {
         }).catch((e) => console.log(e))
     })
     it("Error with target url", function (done){
-        webmention.recieveWebmention("http://localhost:3000/file", "fakeprotocol://localhost:3000/target").then((data) => {
+        webmention.receiveWebmention("http://localhost:3000/file", "fakeprotocol://localhost:3000/target").then((data) => {
             expect(data.status).to.equal(400)
             expect(data.message).to.equal('Target URLs are required to start with http:// or https://')
             expect(data.locationHeader).to.equal(null)
@@ -82,7 +74,7 @@ describe("Unit Tests Recieving", function () {
     })
 
     it("Error with sending the same target and source URL", function (done){
-        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/file").then((data) => {
+        webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/file").then((data) => {
             expect(data.status).to.equal(400)
             expect(data.message).to.equal( "The source URL cannot equal the target URL")
             expect(data.locationHeader).to.equal(null)
@@ -90,7 +82,7 @@ describe("Unit Tests Recieving", function () {
         }).catch((e) => console.log(e))
     })
     it("Error with sending the same target and source URL", function (done){
-        webmention.recieveWebmention("http://example.com", "http://example.com/file").then((data) => {
+        webmention.receiveWebmention("http://example.com", "http://example.com/file").then((data) => {
             expect(data.status).to.equal(400)
             expect(data.message).to.equal('We do not support sending Webmentions to that target URL')
             expect(data.locationHeader).to.equal(null)
@@ -98,8 +90,8 @@ describe("Unit Tests Recieving", function () {
         }).catch((e) => console.log(e))
     })
 
-    it("Send and recieve successful status", function (done) {
-        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{ 
+    it("Send and receive successful status", function (done) {
+        webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{ 
             expect(data.status).to.equal(201);
             expect(data.locationHeader).to.equal("http://localhost:3000/status?source=http://localhost:3000/file&target=http://localhost:3000/target")  
             setTimeout( () => {
@@ -122,8 +114,8 @@ describe("Unit Tests Recieving", function () {
     })
 
     it("Check that I can't send something too fast", function (done){
-        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target")
-        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
+        webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/target")
+        webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
             expect(data.message).equal("Your request is being processed. Please wait at least one minute before trying again.")
             expect(data.status).equal(400)
             
@@ -149,7 +141,7 @@ describe("Unit Tests Recieving", function () {
     })
 
     it("Does not include target", function (done){
-        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/nonExistentTarget").then((data) =>{
+        webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/nonExistentTarget").then((data) =>{
             expect(data.status).equal(201)
             setTimeout( () => {
                 webmention.status("http://localhost:3000/file", "http://localhost:3000/nonExistentTarget").then((statusData) => {
@@ -165,7 +157,7 @@ describe("Unit Tests Recieving", function () {
     })
     it("Source takes too long", function (done){
         this.timeout(3000)
-        webmention.recieveWebmention("http://localhost:3000/tooLongToLoadFile", "http://localhost:3000/target").then((data) =>{
+        webmention.receiveWebmention("http://localhost:3000/tooLongToLoadFile", "http://localhost:3000/target").then((data) =>{
             expect(data.status).equal(201)
             setTimeout( () => {
                 webmention.status("http://localhost:3000/tooLongToLoadFile", "http://localhost:3000/target").then((statusData) => {
@@ -197,18 +189,18 @@ describe("Unit Tests Recieving", function () {
     })
 
     it("Use an https link for the source", function (done){
-        webmention.recieveWebmention("https://www.nicowil.me/posts/adding-additon-to-js", "http://localhost:3000/target").then((data) =>{
+        webmention.receiveWebmention("https://www.nicowil.me/posts/adding-additon-to-js", "http://localhost:3000/target").then((data) =>{
             expect(data.status).equal(201)
             done()
          })
     })
 
     it("Update a document", function (done){
-        this.timeout(2500)
-        webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
+        this.timeout(4000)
+        webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
             expect(data.status).equal(201)
             setTimeout( () => {
-                webmention.recieveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
+                webmention.receiveWebmention("http://localhost:3000/file", "http://localhost:3000/target").then((data) =>{
                     expect(data.status).equal(201)
                     done()
              })
@@ -218,61 +210,3 @@ describe("Unit Tests Recieving", function () {
     })
     
 })
-
-
-
-
-
-/*
-
-// END TO END TEST (Checks how HTML renders and then JSON from status)
-describe('Basic Webmention Sending Tests', function (){
-    it("Send Webmention Successfully", function(done){
-        sendWebMention("http://localhost:3000/file", "http://localhost:3000/target", "http://localhost:3000/webmention", function (res, error){
-            res.text().then((body) =>{ 
-                expect(body).to.include("Recieved webmention!")
-            }).then(() => {
-                // request with Header Content-type application/json that way I can deal with JSON instead of the HTML
-                setTimeout(function () {
-                    request({url:"http://localhost:3000/status?source=http://localhost:3000/file&target=http://localhost:3000/target ", headers: {
-                    'Accept': "application/json",
-                }}, function(err, resp, body){
-                    const data = JSON.parse(body).data
-                    console.log(data.isProcessed)
-                    expect(data.isProcessed).equal(true)
-                    done()
-                })
-                  }, 100);
-                
-            })
-        })
-        
-        
-    })
-    
-
-})
-// can check HTML here for webmention sending
-// try every single error
-const fetch = require('node-fetch');
-var formurlencoded = require('form-urlencoded').default;
-function sendWebMention(source, target, webmentionEndpoint, callback){
-	fetch(webmentionEndpoint, {
-	  body: formurlencoded({source: source, target: target}),
-	  headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-	  },
-	  method: "POST"
-	})
-	.then(res => {
-		// make the response an object, if it worked set success, if not don't
-		callback(res, undefined)
-	}
-	)
-	.catch(err => {
-					console.log("err")
-
-			callback(undefined, err)
-		}
-	)
-}*/

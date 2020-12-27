@@ -1,6 +1,6 @@
-# Webmention Reciever
+# Webmention Receiver
 
-The following project implements a Webmention reciever according to the specification as outlined [here](https://www.w3.org/TR/webmention/). Webmention is a powerful way to submit comments across websites as well as other interactive data.
+The following project implements a Webmention receiver according to the specification as outlined [here](https://www.w3.org/TR/webmention/). Webmention is a powerful way to submit comments across websites as well as other interactive data.
 
 ## Getting Started
 

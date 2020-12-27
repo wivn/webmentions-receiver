@@ -1,6 +1,6 @@
 // MAIN PROGRAM
 var cors = require('cors')
-var WebmentionReciever = require('./webmention.js').WebmentionReciever
+var WebmentionReceiver = require('./webmention.js').WebmentionReceiver
 var WebmentionModel = require("./webmention.js").WebmentionModel
 const followRedirects = require('follow-redirects')
 followRedirects.maxRedirects = 10;
@@ -15,7 +15,7 @@ function getWebmentions(callback){
 
 
 
-const reciever = new WebmentionReciever()
+const receiver = new WebmentionReceiver()
 
 // EXPRESS SPECIFIC CODE
 const fetch = require('node-fetch');
@@ -91,7 +91,7 @@ function sendStatus(req, res, data){
 app.get('/status', function(req, res){
 	const source = req.query.source
 	const target = req.query.target
-	reciever.status(source, target).then((msg) => {
+	receiver.status(source, target).then((msg) => {
 		if(msg){
 			sendStatus(req, res, {data: msg, err: null});
 		} else {
@@ -107,15 +107,15 @@ app.get('/status', function(req, res){
 })
 
 app.post('/webmention', async (req, res) => {
-	reciever.recieveWebmention(req.body.source, req.body.target).then((data) => {
+	receiver.receiveWebmention(req.body.source, req.body.target).then((data) => {
 		res.status(data.status)
 		if(data.locationHeader){
 			res.set('Location', data.locationHeader)
-			res.render('recieved', {message:data.message, url: data.locationHeader})
+			res.render('received', {message:data.message, url: data.locationHeader})
 
 		}  else {
 			// note that the sync stuff will go here too, so it'll look like it failed
-			res.render('error-recieved', {message:data.message})
+			res.render('error-received', {message:data.message})
 		}
 		console.log(data.message)
 		
