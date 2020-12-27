@@ -119,7 +119,7 @@ class WebmentionReceiver {
 				
 				
 			} catch(e){
-				// terrible unforseable error needs to occur in order for this to come into play
+				// this should be impossible, but just in case
 				/* istanbul ignore next */
 				return {message: "Error with loading source URL",
 							 locationHeader: null, status: 400}

@@ -128,11 +128,6 @@ function sendWebMention(source, target, webmentionEndpoint, callback){
 	})
 	.then(res => res.text())
     .then(body => console.log(body))
-	/*.then(res => {
-		// make the response an object, if it worked set success, if not don't
-		callback(res, undefined)
-	}
-	)*/
 	.catch(err => 
 		callback(undefined, err)
 	)
