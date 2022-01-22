@@ -21,7 +21,7 @@
     "form-urlencoded": "^4.0.0",
     "microformat-node": "^2.0.1",
     "mongoose": "^5.7.12",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^3.1.1",
     "node-uuid": "^1.4.8",
     "redis": "^2.8.0",
     "sanitize-html": "^1.20.1",
